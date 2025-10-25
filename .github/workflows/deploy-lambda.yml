@@ -88,6 +88,11 @@ jobs:
           aws lambda wait function-updated \
             --function-name ${{ env.LAMBDA_FUNCTION_NAME }}
 
+      - name: Capture deployment start time
+        id: deploy-start
+        run: |
+          echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
+
       - name: Publish new version
         id: publish-version
         run: |
@@ -104,15 +109,18 @@ jobs:
 
       - name: Send deployment event to Datadog
         env:
-          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
-          DATADOG_SITE: ${{ env.DATADOG_SITE }}
+          DD_BETA_COMMANDS_ENABLED: 1
+          DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DD_SITE: ${{ env.DATADOG_SITE }}
         run: |
           datadog-ci dora deployment \
             --service ${{ env.LAMBDA_FUNCTION_NAME }} \
             --env production \
             --version ${{ steps.publish-version.outputs.version }} \
-            --started-at $(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-            --finished-at $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            --started-at ${{ steps.deploy-start.outputs.timestamp }} \
+            --finished-at $(date +%s) \
+            --git-repository-url ${{ github.repositoryUrl }} \
+            --git-commit-sha ${{ github.sha }}
 
       - name: Deployment successful
         run: |

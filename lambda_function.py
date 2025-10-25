@@ -1,5 +1,8 @@
 import json
+from datadog_lambda.wrapper import datadog_lambda_wrapper
+from datadog_lambda.metric import lambda_metric
 
+@datadog_lambda_wrapper
 def lambda_handler(event, context):
     """
     Función Lambda de ejemplo que procesa eventos y retorna una respuesta
@@ -15,6 +18,13 @@ def lambda_handler(event, context):
 
     # Procesamiento de ejemplo
     message = body.get('message', 'No message provided')
+
+    # Enviar métrica personalizada a Datadog (opcional)
+    lambda_metric(
+        metric_name="custom.lambda.invocations",
+        value=1,
+        tags=["environment:production", f"message_length:{len(message)}"]
+    )
 
     # Respuesta
     response = {

@@ -88,6 +88,28 @@ jobs:
           aws lambda wait function-updated \
             --function-name ${{ env.LAMBDA_FUNCTION_NAME }}
 
+      - name: Configure Datadog Lambda Layers and Environment Variables
+        run: |
+          aws lambda update-function-configuration \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --layers \
+              "arn:aws:lambda:${{ env.AWS_REGION }}:464622532012:layer:Datadog-Python311:115" \
+              "arn:aws:lambda:${{ env.AWS_REGION }}:464622532012:layer:Datadog-Extension:86" \
+            --environment "Variables={
+              DD_SITE=${{ env.DATADOG_SITE }},
+              DD_API_KEY=${{ secrets.DATADOG_API_KEY }},
+              DD_TRACE_ENABLED=true,
+              DD_SERVICE=${{ env.LAMBDA_FUNCTION_NAME }},
+              DD_ENV=production,
+              DD_LOGS_INJECTION=true,
+              DD_SERVERLESS_LOGS_ENABLED=true,
+              DD_CAPTURE_LAMBDA_PAYLOAD=true
+            }"
+
+          echo "Waiting for Datadog configuration update..."
+          aws lambda wait function-updated \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }}
+
       - name: Capture deployment start time
         id: deploy-start
         run: |
